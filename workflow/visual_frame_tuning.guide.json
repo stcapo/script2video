@@ -1,0 +1,165 @@
+{
+  "guide_id": "visual_frame_tuning_v1",
+  "version": "2026-06-11",
+  "purpose": "Machine-readable guide for tuning the video frame pages, referred to by the user as PPT pages.",
+  "concept": {
+    "ppt_meaning_in_this_project": "The PPT is not a .pptx file. It is a set of static 1080x1920 PNG scene cards rendered by Python/Pillow, then held on screen for each scene duration.",
+    "frame_output_directory": "build/frames",
+    "video_assembly": "build/frames.txt lists each static PNG and its duration. ffmpeg concat turns these static pages into video frames."
+  },
+  "source_files": {
+    "main_script": "make_video.py",
+    "input_json": "workflow/*.input.json",
+    "schema": "workflow/scene_input.schema.json",
+    "generated_frames": "build/frames/*.png",
+    "generated_subtitles": "build/subtitles.ass",
+    "generated_audio": "build/narration.wav"
+  },
+  "render_functions": {
+    "render_scene": {
+      "location": "make_video.py",
+      "responsibility": "Render one 1080x1920 PNG for each Scene."
+    },
+    "make_background": {
+      "responsibility": "Create the dark editorial gradient background and accent glow."
+    },
+    "draw_header": {
+      "responsibility": "Draw scene label, title, and bottom progress bar."
+    },
+    "draw_scene_visual": {
+      "responsibility": "Dispatch to one of the visual renderer functions based on scene.visual."
+    },
+    "draw_question_visual": {
+      "visual_key": "question",
+      "visual_texts_count": 2,
+      "best_for": "hook, fear, contradiction, key question"
+    },
+    "draw_calendar_visual": {
+      "visual_key": "calendar",
+      "visual_texts_count": 1,
+      "best_for": "time, waiting, observation, gradual process"
+    },
+    "draw_three_nodes_visual": {
+      "visual_key": "three_nodes",
+      "visual_texts_count": 3,
+      "best_for": "three reasons, three risks, three conclusions"
+    },
+    "draw_pipeline_visual": {
+      "visual_key": "pipeline",
+      "visual_texts_count": 6,
+      "best_for": "sequence, boundary process, before-after logic"
+    },
+    "draw_checklist_visual": {
+      "visual_key": "checklist",
+      "visual_texts_count": 3,
+      "best_for": "questions, criteria, safety checks"
+    },
+    "draw_gates_visual": {
+      "visual_key": "gates",
+      "visual_texts_count": 4,
+      "best_for": "decision gate, yes/no threshold"
+    },
+    "draw_five_tasks_visual": {
+      "visual_key": "five_tasks",
+      "visual_texts_count": 6,
+      "best_for": "action list, next steps, priority list"
+    },
+    "draw_quote_visual": {
+      "visual_key": "quote",
+      "visual_texts_count": 4,
+      "best_for": "closing thesis, emotional summary"
+    }
+  },
+  "json_level_tuning": {
+    "recommended_first": true,
+    "fields": {
+      "video.footer": "Small bottom-left footer text on every page.",
+      "scene.title": "Small colored title near the top.",
+      "scene.headline": "Main large page title. Use \\n for deliberate line breaks.",
+      "scene.body": "Small explanatory copy below headline.",
+      "scene.accent": "RGB color controlling page highlight color.",
+      "scene.visual": "Selects the middle-page graphic template.",
+      "scene.visual_texts": "Overrides labels inside the selected graphic."
+    },
+    "safe_microtuning_examples": [
+      {
+        "goal": "Change page headline",
+        "edit": "Modify scenes[i].headline in the input JSON."
+      },
+      {
+        "goal": "Change central visual labels",
+        "edit": "Modify scenes[i].visual_texts."
+      },
+      {
+        "goal": "Change page color mood",
+        "edit": "Modify scenes[i].accent."
+      },
+      {
+        "goal": "Make page duration shorter or longer",
+        "edit": "Modify scenes[i].narration, because page duration follows the total TTS audio duration for that scene."
+      },
+      {
+        "goal": "Change generated output path",
+        "edit": "Modify video.output."
+      }
+    ]
+  },
+  "code_level_tuning": {
+    "use_when": "Only edit Python when JSON fields are not enough.",
+    "common_targets": [
+      {
+        "target": "headline position",
+        "location": "render_scene",
+        "current": "draw_multiline(draw, headline_lines, 70, 275, headline_font, ...)",
+        "how_to_tune": "Change x=70 or y=275."
+      },
+      {
+        "target": "body position",
+        "location": "render_scene",
+        "current": "draw_multiline(draw, body_lines, 73, 505, body_font, ...)",
+        "how_to_tune": "Change x=73 or y=505."
+      },
+      {
+        "target": "visual block position",
+        "location": "draw_*_visual functions",
+        "how_to_tune": "Change y/top/start_y constants inside the matching visual function."
+      },
+      {
+        "target": "footer position",
+        "location": "render_scene",
+        "current": "draw.text((70, 1708), FOOTER_TEXT, ...)",
+        "how_to_tune": "Change x=70 or y=1708."
+      },
+      {
+        "target": "subtitle size",
+        "location": "global constants",
+        "current": "SUBTITLE_FONT_SIZE = 92",
+        "how_to_tune": "Increase/decrease SUBTITLE_FONT_SIZE."
+      },
+      {
+        "target": "subtitle vertical position",
+        "location": "global constants",
+        "current": "SUBTITLE_MARGIN_V = 300",
+        "how_to_tune": "Increase value to move subtitle upward; decrease to move it downward."
+      },
+      {
+        "target": "subtitle display wrapping",
+        "location": "global constants and wrap_subtitle_display",
+        "current": "SUBTITLE_DISPLAY_MAX_CHARS = 10",
+        "how_to_tune": "Decrease for more line breaks; increase for fewer line breaks."
+      }
+    ]
+  },
+  "preview_workflow": {
+    "single_frame_extract": "ffmpeg -y -hide_banner -loglevel error -ss 00:00:03.000 -i .\\dist\\privacy_boundary_address.mp4 -frames:v 1 .\\build\\preview.png",
+    "multi_frame_strip": "Extract several PNGs, then hstack them with ffmpeg for visual comparison.",
+    "current_verified_preview": "build/privacy_vcut_final_preview_strip.png"
+  },
+  "important_constraints": [
+    "Do not remove fps=30 before subtitles in render_video.",
+    "Do not use Edge WordBoundary timestamps as the final subtitle timing source.",
+    "Do not let large subtitles exceed the horizontal safe area; use ASS \\N display wrapping.",
+    "For vcut TTS, keep each subtitle audio chunk under the provider limit. Current split_subtitles max is 16 chars before display wrapping.",
+    "When only subtitle style changes, reuse build/narration.wav and re-run render_video; do not call TTS again."
+  ]
+}

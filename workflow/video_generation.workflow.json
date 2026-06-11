@@ -1,0 +1,171 @@
+{
+  "workflow_id": "script_to_video_vertical_editorial_v1",
+  "version": "2026-06-11",
+  "purpose": "Given a Chinese script or topic, produce a vertical narrated short video with synchronized burned-in subtitles.",
+  "entrypoint": {
+    "command": "python .\\make_video.py --input .\\workflow\\example.input.json",
+    "working_directory": "D:\\zzz\\github_project_learning\\script_to_video",
+    "default_output": "dist\\ai_workflow_nodes.mp4"
+  },
+  "runtime_requirements": {
+    "python_packages": [
+      "pillow>=12.0.0",
+      "numpy>=2.0.0"
+    ],
+    "external_tools": [
+      "ffmpeg",
+      "ffprobe"
+    ],
+    "windows_fonts": [
+      "C:\\Windows\\Fonts\\msyh.ttc",
+      "C:\\Windows\\Fonts\\msyhbd.ttc",
+      "C:\\Windows\\Fonts\\msyhl.ttc"
+    ],
+    "environment_variables": [
+      {
+        "key": "MBAISCVIP_API_KEY",
+        "required": true,
+        "description": "Required by vcut mbaiscvip TTS. May be set in environment or project .env."
+      },
+      {
+        "key": "MBAISCVIP_BASE_URL",
+        "required": false,
+        "default": "https://api.milorapart.top/apis/mbAIscvip"
+      }
+    ]
+  },
+  "input_contract": {
+    "preferred_file": "workflow\\*.input.json",
+    "schema_file": "workflow\\scene_input.schema.json",
+    "top_level_keys": [
+      "video",
+      "scenes"
+    ],
+    "scene_count_recommendation": {
+      "min": 6,
+      "max": 10,
+      "ideal": 8
+    },
+    "copywriting_rules": [
+      "Each scene expresses exactly one idea.",
+      "headline should be short and preferably two visual lines.",
+      "body should be one compact sentence shown on screen.",
+      "narration should be natural Chinese spoken copy with clear Chinese punctuation.",
+      "Use punctuation from: ，。？！；：、",
+      "Do not put usage instructions or meta commentary in visible text."
+    ]
+  },
+  "ai_execution_algorithm": [
+    {
+      "step": "analyze_user_copy",
+      "action": "Extract topic, audience, stance, key points, desired tone, and target length from the user's script or brief."
+    },
+    {
+      "step": "segment_script",
+      "action": "Convert the copy into 6 to 10 scenes. Each scene needs slug, title, headline, body, narration, accent, and visual."
+    },
+    {
+      "step": "write_input_json",
+      "action": "Create a JSON file that conforms to workflow/scene_input.schema.json."
+    },
+    {
+      "step": "render_video",
+      "action": "Run python .\\make_video.py --input <input_json_path>."
+    },
+    {
+      "step": "validate_output",
+      "action": "Run py_compile and ffprobe checks. Extract same-scene frames if subtitle refresh is in doubt."
+    },
+    {
+      "step": "deliver",
+      "action": "Return the output video path and any verification notes."
+    }
+  ],
+  "render_pipeline": [
+    "Split each scene narration into subtitle lines.",
+    "Generate one vcut TTS audio chunk per subtitle line.",
+    "Trim leading silence from each audio chunk.",
+    "Concatenate chunks into build/narration.wav.",
+    "Write ASS subtitles using the exact cumulative duration of each audio chunk.",
+    "Render one static scene image per scene.",
+    "Build scene frame durations from subtitle/audio chunk timestamps.",
+    "Concatenate static frames.",
+    "Apply video filters in this exact order: scale -> pad -> fps=30 -> subtitles.",
+    "Mux the rendered video stream with build/narration.wav."
+  ],
+  "visual_frame_generation": {
+    "user_term": "PPT",
+    "actual_artifact": "Static 1080x1920 PNG scene cards, not a .pptx deck.",
+    "frame_directory": "build/frames",
+    "implementation": "Python Pillow drawing in make_video.py",
+    "main_function": "render_scene(scene, index)",
+    "tuning_guide": "workflow/visual_frame_tuning.guide.json",
+    "json_first_tuning_fields": [
+      "video.footer",
+      "scenes[].title",
+      "scenes[].headline",
+      "scenes[].body",
+      "scenes[].accent",
+      "scenes[].visual",
+      "scenes[].visual_texts",
+      "scenes[].narration"
+    ]
+  },
+  "critical_invariants": {
+    "subtitle_sync": "A subtitle line must correspond to exactly one generated audio chunk.",
+    "tts_backend": "Default TTS backend is vcut mbaiscvip via vcut-tts-interface semantics.",
+    "subtitle_refresh": "The subtitles filter must run after fps=30, otherwise subtitles freeze until scene changes.",
+    "text_consistency": "Generated subtitle text must normalize to the same text as all scene narration.",
+    "frame_rate": "Final video must report avg_frame_rate as 30/1.",
+    "duration_tolerance_seconds": 0.05
+  },
+  "quality_checks": {
+    "syntax": "python -m py_compile .\\make_video.py",
+    "ffprobe": "ffprobe -v error -show_entries stream=index,codec_type,duration,avg_frame_rate -of json .\\dist\\ai_workflow_nodes.mp4",
+    "same_scene_subtitle_refresh": [
+      "ffmpeg -y -hide_banner -loglevel error -ss 00:00:01.000 -i .\\dist\\ai_workflow_nodes.mp4 -frames:v 1 .\\build\\check_001s.png",
+      "ffmpeg -y -hide_banner -loglevel error -ss 00:00:04.000 -i .\\dist\\ai_workflow_nodes.mp4 -frames:v 1 .\\build\\check_004s.png",
+      "ffmpeg -y -hide_banner -loglevel error -ss 00:00:07.000 -i .\\dist\\ai_workflow_nodes.mp4 -frames:v 1 .\\build\\check_007s.png"
+    ]
+  },
+  "available_visuals": {
+    "question": "Opening question, contradiction, or hook.",
+    "calendar": "Experiment, log, time period, or habit.",
+    "three_nodes": "Three categories, three findings, or compact result.",
+    "pipeline": "Workflow, bottleneck, system, sequence.",
+    "checklist": "Judgment criteria, steps, or questions.",
+    "gates": "Yes/no gate, decision threshold, filter.",
+    "five_tasks": "Action list, today's tasks, immediate next step.",
+    "quote": "Closing quote, distilled thesis, final statement."
+  },
+  "style_contract": {
+    "format": "vertical editorial explainer",
+    "resolution": {
+      "width": 1080,
+      "height": 1920
+    },
+    "fps": 30,
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "rate": "+8%",
+    "tts_backend": "vcut",
+    "vcut": {
+      "mode": "mbaiscvip",
+      "format": "mp3",
+      "speed": "0"
+    },
+    "subtitle_style": {
+      "font_size": 92,
+      "margin_v": 300,
+      "split_max_chars": 16,
+      "display_wrap_max_chars": 10
+    },
+    "visual_style": [
+      "dark editorial scene cards",
+      "clear two-line headline",
+      "compact body copy",
+      "minimal interface-like graphics",
+      "accent color per scene",
+      "readable lower subtitles"
+    ]
+  }
+}

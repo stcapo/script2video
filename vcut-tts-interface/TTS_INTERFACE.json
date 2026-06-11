@@ -1,0 +1,386 @@
+{
+  "name": "vcut TTS Workflow Interface",
+  "version": "1.0.0",
+  "description": "文本转语音(TTS)工作流接口，支持曼波AI、Fish Audio和本地音频三种模式",
+  "metadata": {
+    "project": "vcut",
+    "use_case": "video_generation_pipeline",
+    "documentation_generated": "2026-06-11"
+  },
+  "environment": {
+    "description": "从项目根目录 .env 文件中读取的环境变量配置",
+    "variables": [
+      {
+        "key": "MBAISCVIP_API_KEY",
+        "required": true,
+        "mode": "mbaiscvip",
+        "description": "曼波AI SVoice VIP API密钥，用于TTS生成"
+      },
+      {
+        "key": "MBAISCVIP_BASE_URL",
+        "required": true,
+        "mode": "mbaiscvip",
+        "default": "https://api.milorapart.top/apis/mbAIscvip",
+        "description": "曼波AI API基础URL"
+      },
+      {
+        "key": "FISH_AUDIO_API_KEY",
+        "required": true,
+        "mode": "fish_audio",
+        "description": "Fish Audio API密钥"
+      },
+      {
+        "key": "FISH_AUDIO_BASE_URL",
+        "required": true,
+        "mode": "fish_audio",
+        "default": "https://api.fish.audio",
+        "description": "Fish Audio API基础URL"
+      }
+    ]
+  },
+  "modes": {
+    "description": "支持的TTS模式",
+    "mbaiscvip": {
+      "name": "曼波AI SVoice VIP",
+      "description": "默认TTS模式，调用曼波配音接口生成音频",
+      "api_endpoint": "{MBAISCVIP_BASE_URL}",
+      "request": {
+        "method": "GET",
+        "parameters": [
+          {
+            "name": "text",
+            "type": "string",
+            "description": "要转换的中文文本，最大200字符"
+          },
+          {
+            "name": "format",
+            "type": "string",
+            "enum": ["mp3", "wav"],
+            "description": "输出音频格式"
+          },
+          {
+            "name": "speed",
+            "type": "string",
+            "description": "语速，'0'为正常速度"
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "API密钥，来自MBAISCVIP_API_KEY"
+          }
+        ],
+        "headers": {
+          "Authorization": "Bearer {MBAISCVIP_API_KEY}",
+          "User-Agent": "vcut/0.1"
+        }
+      },
+      "response": {
+        "success": {
+          "code": 200,
+          "body": {
+            "code": 200,
+            "url": "https://...",
+            "msg": "success"
+          }
+        },
+        "failure": {
+          "code": 500,
+          "body": {
+            "code": 500,
+            "url": null,
+            "msg": "error description"
+          }
+        }
+      },
+      "retry_policy": {
+        "max_attempts": 3,
+        "backoff_multiplier": 1.5,
+        "timeout_seconds": 120
+      },
+      "segmentation": {
+        "max_chars_per_segment": 200,
+        "split_strategy": "按中文标点和空格优先断行"
+      }
+    },
+    "fish_audio": {
+      "name": "Fish Audio",
+      "description": "预留入口，支持Fish Audio API进行TTS",
+      "api_endpoint": "{FISH_AUDIO_BASE_URL}/v1/tts",
+      "request": {
+        "method": "POST",
+        "headers": {
+          "Authorization": "Bearer {FISH_AUDIO_API_KEY}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "text": "完整中文脚本",
+          "reference_id": "语音参考ID",
+          "format": "mp3|wav"
+        }
+      },
+      "timeout_seconds": 120
+    },
+    "manual_audio": {
+      "name": "本地音频",
+      "description": "使用本地音频文件，跳过TTS生成步骤",
+      "supported_formats": ["mp3", "wav", "m4a", "aac", "flac", "ogg", "opus"],
+      "validation": {
+        "must_have_audio_stream": true,
+        "minimum_duration_seconds": 1
+      }
+    }
+  },
+  "job_config": {
+    "description": "任务配置文件(job.json)中的voice部分",
+    "voice_config": {
+      "mbaiscvip": {
+        "mode": "mbaiscvip",
+        "format": "string (mp3|wav)",
+        "speed": "string (语速参数，通常为'0')"
+      },
+      "fish_audio": {
+        "mode": "fish_audio",
+        "reference_id": "string",
+        "format": "string (mp3|wav)"
+      },
+      "manual_audio": {
+        "mode": "manual_audio",
+        "audio_uri": "string (相对于inputs/的路径)"
+      }
+    },
+    "example_mbaiscvip": {
+      "script_file": "inputs/script.txt",
+      "title": "视频标题",
+      "voice": {
+        "mode": "mbaiscvip",
+        "format": "mp3",
+        "speed": "0"
+      }
+    },
+    "example_manual_audio": {
+      "script_file": "inputs/script.txt",
+      "title": "视频标题",
+      "voice": {
+        "mode": "manual_audio",
+        "audio_uri": "inputs/voiceover.mp3"
+      }
+    }
+  },
+  "workflow": {
+    "description": "TTS工作流的执行步骤",
+    "steps": [
+      {
+        "step": 1,
+        "name": "加载脚本",
+        "description": "从job.json中读取脚本文件路径，加载中文文案",
+        "input": "projects/{video_id}/job.json",
+        "output": "script_zh (完整中文文案)"
+      },
+      {
+        "step": 2,
+        "name": "验证配置",
+        "description": "检查voice.mode是否有效，加载必要的API密钥",
+        "validation": [
+          "voice.mode必须为: mbaiscvip, fish_audio, manual_audio",
+          "根据mode加载对应的.env变量"
+        ]
+      },
+      {
+        "step": 3,
+        "name": "文本分段",
+        "description": "仅用于TTS模式(mbaiscvip/fish_audio)，按中文标点和空格切分文案",
+        "input": "script_zh",
+        "output": "text_segments (list[str])",
+        "config": {
+          "max_chars": 200,
+          "split_by": "中文标点符号和空格"
+        }
+      },
+      {
+        "step": 4,
+        "name": "TTS请求",
+        "description": "对每个文本段调用相应的TTS API",
+        "for_each": "text_segments",
+        "request": {
+          "mbaiscvip": "GET {MBAISCVIP_BASE_URL}?text={segment}&format={format}&speed={speed}&key={api_key}",
+          "fish_audio": "POST {FISH_AUDIO_BASE_URL}/v1/tts with json body"
+        },
+        "error_handling": {
+          "retry": true,
+          "max_attempts": 3,
+          "backoff": "指数退避 1.5x"
+        }
+      },
+      {
+        "step": 5,
+        "name": "音频下载",
+        "description": "从TTS API返回的URL下载音频文件到raw_segments目录",
+        "output": "audio/raw_segments/segment_*.{mp3|wav}",
+        "validation": "验证下载的文件包含有效的音频流"
+      },
+      {
+        "step": 6,
+        "name": "格式转换",
+        "description": "使用FFmpeg将原始音频转换为统一的WAV格式(48kHz, 16-bit PCM, 2ch)",
+        "output": "audio/wav_segments/segment_*.wav",
+        "ffmpeg_command": "ffmpeg -y -i {input} -vn -ac 2 -ar 48000 -c:a pcm_s16le {output}"
+      },
+      {
+        "step": 7,
+        "name": "音频拼接",
+        "description": "将所有WAV段拼接成完整的口播音轨",
+        "input": "audio/wav_segments/segment_*.wav",
+        "output": "audio/voiceover.wav",
+        "method": "FFmpeg concat demuxer"
+      },
+      {
+        "step": 8,
+        "name": "元数据保存",
+        "description": "保存分段信息到JSON文件，用于后续审查和局部修复",
+        "output": "audio/voice_segments.json"
+      }
+    ]
+  },
+  "output": {
+    "directory_structure": "projects/{video_id}/outputs/latest/audio/",
+    "files": [
+      {
+        "path": "voiceover.wav",
+        "type": "音频文件",
+        "format": "WAV PCM 16-bit 48kHz 2ch",
+        "description": "最终完整口播音轨，用于视频混音"
+      },
+      {
+        "path": "raw_segments/segment_*.{mp3|wav}",
+        "type": "音频文件(多个)",
+        "description": "TTS API直接返回的原始音频段"
+      },
+      {
+        "path": "wav_segments/segment_*.wav",
+        "type": "音频文件(多个)",
+        "description": "转换后的WAV格式音频段"
+      },
+      {
+        "path": "voice_segments.json",
+        "type": "元数据文件",
+        "description": "分段信息清单，包含每段的文本、时长、来源URL等",
+        "schema": {
+          "type": "array",
+          "items": {
+            "index": "number (1开始的段序号)",
+            "text": "string (该段的原始文本)",
+            "raw_path": "string (原始音频文件路径)",
+            "wav_path": "string (WAV音频文件路径)",
+            "duration": "number (音频时长，秒，保留3位小数)",
+            "source_url": "string|null (TTS API返回的音频URL)"
+          }
+        },
+        "example": [
+          {
+            "index": 1,
+            "text": "Claude Code 是一个强大的代码编辑工具。",
+            "raw_path": "audio/raw_segments/segment_001.mp3",
+            "wav_path": "audio/wav_segments/segment_001.wav",
+            "duration": 2.345,
+            "source_url": "https://cdn.example.com/audio/xxxxx.mp3"
+          }
+        ]
+      }
+    ]
+  },
+  "error_handling": {
+    "error_types": [
+      {
+        "error": "ConfigError",
+        "scenarios": [
+          "voice.mode不合法",
+          "缺少必要的API密钥",
+          "manual_audio没有指定audio_uri",
+          "audio_uri指向的文件不存在"
+        ]
+      },
+      {
+        "error": "MediaError",
+        "scenarios": [
+          "音频文件无法解码",
+          "音频时长不足1秒(manual_audio)",
+          "TTS API返回错误响应",
+          "网络请求失败或超时(3次重试后)",
+          "下载的音频文件无效"
+        ]
+      }
+    ],
+    "recovery_strategy": "保留draft.mp4和所有中间产物，允许局部重做单个分段"
+  },
+  "integration": {
+    "input_from": [
+      "job.json (voice配置)",
+      ".env (API密钥和基础URL)",
+      "inputs/script.txt (中文脚本)"
+    ],
+    "feeds_to": [
+      "storyboard.json 生成 (使用分段时长)",
+      "FFmpeg渲染 (混音voiceover.wav到视频)"
+    ]
+  },
+  "api_specs": {
+    "mbaiscvip_tts": {
+      "description": "曼波AI SVoice VIP TTS API详细规范",
+      "base_url": "https://api.milorapart.top/apis/mbAIscvip",
+      "endpoint": "GET /",
+      "parameters": {
+        "text": {
+          "type": "string",
+          "max_length": 200,
+          "encoding": "UTF-8",
+          "description": "要转换的中文文本"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["mp3", "wav"],
+          "description": "返回的音频格式"
+        },
+        "speed": {
+          "type": "string",
+          "example": "0",
+          "description": "语速参数，'0'表示正常速度"
+        },
+        "key": {
+          "type": "string",
+          "description": "API认证密钥"
+        }
+      },
+      "headers": {
+        "Authorization": "Bearer {api_key}",
+        "User-Agent": "vcut/0.1"
+      },
+      "response_format": "application/json",
+      "response_fields": {
+        "code": {
+          "type": "number",
+          "description": "状态码，200表示成功"
+        },
+        "url": {
+          "type": "string",
+          "description": "成功时返回音频文件URL，失败时为null"
+        },
+        "msg": {
+          "type": "string",
+          "description": "状态消息"
+        }
+      },
+      "timeout": 120,
+      "retry_logic": {
+        "max_attempts": 3,
+        "backoff": "exponential 1.5x multiplier",
+        "retryable_errors": ["timeout", "connection_error", "rate_limit"]
+      }
+    }
+  },
+  "cli_usage": {
+    "description": "命令行调用方式",
+    "command": "python -m vcut render --job <path_to_job.json> --out <output_dir>",
+    "example": "python -m vcut render --job projects/demo/job.json --out projects/demo/outputs/latest",
+    "env_loading": "CLI自动从当前目录向上查找.env文件并加载"
+  }
+}
