@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "script_to_video.scene_input.schema.json",
+  "title": "Script To Video Scene Input",
+  "type": "object",
+  "required": [
+    "scenes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "video": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "output": {
+          "type": "string",
+          "description": "Output video path. Relative paths are resolved from the project root."
+        },
+        "voice": {
+          "type": "string",
+          "default": "zh-CN-XiaoxiaoNeural",
+          "description": "Only used when tts_backend is edge."
+        },
+        "rate": {
+          "type": "string",
+          "default": "+8%",
+          "description": "Only used when tts_backend is edge."
+        },
+        "tts_backend": {
+          "type": "string",
+          "enum": [
+            "vcut",
+            "edge"
+          ],
+          "default": "vcut"
+        },
+        "vcut": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "mbaiscvip"
+              ],
+              "default": "mbaiscvip"
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "mp3",
+                "wav"
+              ],
+              "default": "mp3"
+            },
+            "speed": {
+              "type": "string",
+              "default": "0"
+            }
+          }
+        },
+        "footer": {
+          "type": "string",
+          "description": "Small footer text rendered near the progress bar."
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scene"
+      }
+    }
+  },
+  "$defs": {
+    "text_or_string_array": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "scene": {
+      "type": "object",
+      "required": [
+        "slug",
+        "title",
+        "headline",
+        "body",
+        "narration",
+        "accent",
+        "visual"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9_\\-]+$"
+        },
+        "label": {
+          "type": "string",
+          "description": "Optional. If omitted, script generates labels like 01 / 08."
+        },
+        "title": {
+          "type": "string"
+        },
+        "headline": {
+          "$ref": "#/$defs/text_or_string_array",
+          "description": "Screen headline. Use \\n or string array for line breaks."
+        },
+        "body": {
+          "$ref": "#/$defs/text_or_string_array",
+          "description": "One compact sentence shown under the headline."
+        },
+        "narration": {
+          "$ref": "#/$defs/text_or_string_array",
+          "description": "Full Chinese spoken narration for this scene."
+        },
+        "accent": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            }
+          ],
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "visual": {
+          "type": "string",
+          "enum": [
+            "question",
+            "calendar",
+            "three_nodes",
+            "pipeline",
+            "checklist",
+            "gates",
+            "five_tasks",
+            "quote"
+          ]
+        },
+        "visual_texts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional visual labels used by the selected visual renderer."
+        }
+      }
+    }
+  }
+}

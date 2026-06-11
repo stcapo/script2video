@@ -7,8 +7,6 @@ __pycache__/
 
 build/
 dist/
-snapshots/
-docs/
 
 workflow/*.input.json
 !workflow/example.input.json
@@ -16,4 +14,3 @@ workflow/current_state.snapshot.json
 
 .DS_Store
 Thumbs.db
-

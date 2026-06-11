@@ -1,0 +1,17 @@
+file 'D:/zzz/github_project_learning/script_to_video/build/frames/01_01_open.png'
+duration 23.545
+file 'D:/zzz/github_project_learning/script_to_video/build/frames/02_02_log.png'
+duration 19.469
+file 'D:/zzz/github_project_learning/script_to_video/build/frames/03_03_result.png'
+duration 25.188
+file 'D:/zzz/github_project_learning/script_to_video/build/frames/04_04_bottleneck.png'
+duration 19.910
+file 'D:/zzz/github_project_learning/script_to_video/build/frames/05_05_questions.png'
+duration 25.782
+file 'D:/zzz/github_project_learning/script_to_video/build/frames/06_06_boundary.png'
+duration 26.417
+file 'D:/zzz/github_project_learning/script_to_video/build/frames/07_07_action.png'
+duration 18.589
+file 'D:/zzz/github_project_learning/script_to_video/build/frames/08_08_close.png'
+duration 17.077
+file 'D:/zzz/github_project_learning/script_to_video/build/frames/08_08_close.png'

@@ -1,0 +1,71 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default, Microsoft YaHei, 92, &H00FFFFFF, &H000000FF, &H99000000, &HCC000000, -1, 0, 0, 0, 100, 100, 0, 0, 3, 3, 0, 2, 80, 80, 300, 1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:02.54,Default,,0,0,0,,不知道大家有没有刷到\N过一个视频。
+Dialogue: 0,0:00:02.54,0:00:05.45,Default,,0,0,0,,前两天我刷到，\N到现在我都睡不好。
+Dialogue: 0,0:00:05.45,0:00:07.46,Default,,0,0,0,,一个女生想跟男朋友分\N手，
+Dialogue: 0,0:00:07.46,0:00:08.61,Default,,0,0,0,,男的不同意。
+Dialogue: 0,0:00:08.61,0:00:10.62,Default,,0,0,0,,然后他顺着她留过的地\N址，
+Dialogue: 0,0:00:10.62,0:00:11.79,Default,,0,0,0,,摸到了她家。
+Dialogue: 0,0:00:11.79,0:00:13.35,Default,,0,0,0,,伪装成送快递的，
+Dialogue: 0,0:00:13.35,0:00:15.98,Default,,0,0,0,,门一开，一刀，\N人就没了。
+Dialogue: 0,0:00:15.98,0:00:17.68,Default,,0,0,0,,我反复看那条新闻，
+Dialogue: 0,0:00:17.68,0:00:18.77,Default,,0,0,0,,手是凉的。
+Dialogue: 0,0:00:18.77,0:00:21.62,Default,,0,0,0,,所以今天，我男朋友想\N看我身份证，
+Dialogue: 0,0:00:21.62,0:00:23.59,Default,,0,0,0,,问我家具体住址的时候\N，
+Dialogue: 0,0:00:23.59,0:00:25.52,Default,,0,0,0,,我下意识用手挡了一下\N。
+Dialogue: 0,0:00:25.52,0:00:28.12,Default,,0,0,0,,他立刻翻脸，\N说我不信任他。
+Dialogue: 0,0:00:28.12,0:00:30.63,Default,,0,0,0,,可你们知道我那一下挡\N的是什么吗？
+Dialogue: 0,0:00:30.63,0:00:32.33,Default,,0,0,0,,我挡的不是他这个人。
+Dialogue: 0,0:00:32.33,0:00:35.22,Default,,0,0,0,,我挡的是，那个我控制\N不了的万一。
+Dialogue: 0,0:00:35.22,0:00:37.81,Default,,0,0,0,,我必须说清楚，\N我生气的点，
+Dialogue: 0,0:00:37.81,0:00:40.44,Default,,0,0,0,,从来不是他想看我地址\N这件事本身。
+Dialogue: 0,0:00:40.44,0:00:42.46,Default,,0,0,0,,恋爱里互相知道住在哪\N，
+Dialogue: 0,0:00:42.46,0:00:43.52,Default,,0,0,0,,太正常了。
+Dialogue: 0,0:00:43.52,0:00:45.04,Default,,0,0,0,,真正让我害怕的，
+Dialogue: 0,0:00:45.04,0:00:46.78,Default,,0,0,0,,是几件事叠在一起。
+Dialogue: 0,0:00:46.78,0:00:49.42,Default,,0,0,0,,第一，我跟他其实认识\N没多久，
+Dialogue: 0,0:00:49.42,0:00:51.51,Default,,0,0,0,,我并不真正了解他这个\N人。
+Dialogue: 0,0:00:51.51,0:00:53.21,Default,,0,0,0,,第二，他的情绪，
+Dialogue: 0,0:00:53.21,0:00:55.59,Default,,0,0,0,,我说实话，是有点不稳\N定的。
+Dialogue: 0,0:00:55.59,0:00:58.20,Default,,0,0,0,,一个小动作就能让他瞬\N间翻脸，
+Dialogue: 0,0:00:58.20,0:01:01.97,Default,,0,0,0,,上头。第三，\N就在我心里还没底的时
+Dialogue: 0,0:01:01.97,0:01:04.70,Default,,0,0,0,,候，他急着要我最核心\N的隐私，
+Dialogue: 0,0:01:04.70,0:01:05.86,Default,,0,0,0,,我的家在哪。
+Dialogue: 0,0:01:05.86,0:01:07.42,Default,,0,0,0,,把这三点放一起，
+Dialogue: 0,0:01:07.42,0:01:10.51,Default,,0,0,0,,我不是矫情，我是本能地觉得不安全\N。
+Dialogue: 0,0:01:10.51,0:01:13.32,Default,,0,0,0,,我们总被教育，\N谈恋爱要坦诚，
+Dialogue: 0,0:01:13.32,0:01:14.66,Default,,0,0,0,,要无条件信任。
+Dialogue: 0,0:01:14.66,0:01:16.37,Default,,0,0,0,,可是没有人告诉我们，
+Dialogue: 0,0:01:16.37,0:01:18.37,Default,,0,0,0,,在你还看不清一个人之\N前，
+Dialogue: 0,0:01:18.37,0:01:20.46,Default,,0,0,0,,留一点边界，\N不是冷漠，
+Dialogue: 0,0:01:20.46,0:01:21.36,Default,,0,0,0,,是自保。
+Dialogue: 0,0:01:21.36,0:01:23.75,Default,,0,0,0,,地址这种东西，\N给出去容易，
+Dialogue: 0,0:01:23.75,0:01:25.08,Default,,0,0,0,,收回来不可能。
+Dialogue: 0,0:01:25.08,0:01:27.33,Default,,0,0,0,,我可以在我确定他是安\N全的，
+Dialogue: 0,0:01:27.33,0:01:30.40,Default,,0,0,0,,情绪是稳的，\N我们是真的了解彼此之
+Dialogue: 0,0:01:30.40,0:01:32.12,Default,,0,0,0,,后，再慢慢敞开。
+Dialogue: 0,0:01:32.12,0:01:33.95,Default,,0,0,0,,但绝不是在他一上头，
+Dialogue: 0,0:01:33.95,0:01:35.36,Default,,0,0,0,,我一害怕的时候，
+Dialogue: 0,0:01:35.36,0:01:36.67,Default,,0,0,0,,被逼着交出去。
+Dialogue: 0,0:01:36.67,0:01:38.23,Default,,0,0,0,,他现在还在生气，
+Dialogue: 0,0:01:38.23,0:01:39.74,Default,,0,0,0,,觉得我小题大做。
+Dialogue: 0,0:01:39.74,0:01:41.27,Default,,0,0,0,,可比起被骂敏感，
+Dialogue: 0,0:01:41.27,0:01:44.32,Default,,0,0,0,,我更怕的是，\N我成了下一条新闻里，
+Dialogue: 0,0:01:44.32,0:01:46.51,Default,,0,0,0,,那个她明明察觉到了不\N对劲，
+Dialogue: 0,0:01:46.51,0:01:48.66,Default,,0,0,0,,却还是把地址给了他的\N女生。
+Dialogue: 0,0:01:48.66,0:01:51.05,Default,,0,0,0,,姐妹们，那种说不上来\N的，
+Dialogue: 0,0:01:51.05,0:01:53.42,Default,,0,0,0,,隐隐的害怕，\N本身就是答案。
+Dialogue: 0,0:01:53.42,0:01:56.26,Default,,0,0,0,,不是所有边界都需要向\N别人解释到对
+Dialogue: 0,0:01:56.26,0:01:57.16,Default,,0,0,0,,方满意。
+Dialogue: 0,0:01:57.16,0:01:59.41,Default,,0,0,0,,有些时候，你先保护自\N己，
+Dialogue: 0,0:01:59.41,0:02:01.39,Default,,0,0,0,,就已经是最正确的选择\N。
