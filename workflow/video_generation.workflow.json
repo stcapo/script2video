@@ -82,11 +82,13 @@
     }
   ],
   "render_pipeline": [
-    "Split each scene narration into subtitle lines.",
-    "Generate one vcut TTS audio chunk per subtitle line.",
-    "Trim leading silence from each audio chunk.",
+    "Split each scene narration into short subtitle display lines.",
+    "Group subtitle lines into scene-scoped vcut TTS request chunks up to 299 characters.",
+    "Generate one vcut TTS audio chunk per request group.",
+    "Trim leading silence from each request audio chunk.",
     "Concatenate chunks into build/narration.wav.",
-    "Write ASS subtitles using the exact cumulative duration of each audio chunk.",
+    "Allocate subtitle line timing inside each request chunk using weighted text length.",
+    "Write ASS subtitles using estimated line timing within real request chunk durations.",
     "Render one static scene image per scene.",
     "Build scene frame durations from subtitle/audio chunk timestamps.",
     "Concatenate static frames.",
@@ -112,7 +114,8 @@
     ]
   },
   "critical_invariants": {
-    "subtitle_sync": "A subtitle line must correspond to exactly one generated audio chunk.",
+    "subtitle_sync": "A TTS request chunk may contain multiple subtitle lines; line timings are allocated within the real chunk duration using weighted estimates.",
+    "tts_chunking": "Default mode groups subtitle lines up to 299 chars per scene to reduce API calls.",
     "tts_backend": "Default TTS backend is vcut mbaiscvip via vcut-tts-interface semantics.",
     "subtitle_refresh": "The subtitles filter must run after fps=30, otherwise subtitles freeze until scene changes.",
     "text_consistency": "Generated subtitle text must normalize to the same text as all scene narration.",
@@ -152,6 +155,12 @@
       "mode": "mbaiscvip",
       "format": "mp3",
       "speed": "0"
+    },
+    "tts_chunking": {
+      "mode": "max_request_length",
+      "max_chars": 299,
+      "scope": "scene",
+      "timing": "weighted_estimate"
     },
     "subtitle_style": {
       "font_size": 92,

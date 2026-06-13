@@ -5,8 +5,8 @@
   "status": "verified_after_subtitle_freeze_fix",
   "verified_output": {
     "path": "dist/privacy_boundary_address.mp4",
-    "video_duration_seconds": 121.366667,
-    "audio_duration_seconds": 121.388,
+    "video_duration_seconds": 130.033333,
+    "audio_duration_seconds": 130.005,
     "frame_rate": "30/1",
     "resolution": "1080x1920"
   },
@@ -28,9 +28,16 @@
     ]
   },
   "subtitle_sync_strategy": {
-    "method": "audio_chunk_per_subtitle_line",
+    "method": "scene_scoped_max_request_length_chunks",
     "tts_backend": "vcut mbaiscvip via vcut-tts-interface semantics",
-    "reason": "Line-level audio chunks keep subtitle timing deterministic and avoid relying on coarse word-boundary timestamps.",
+    "reason": "Scene-scoped request chunks reduce API calls while subtitle timings are estimated inside each real chunk duration.",
+    "latest_chunking_stats": {
+      "subtitle_lines": 59,
+      "tts_calls": 8,
+      "average_request_chars": 81.6,
+      "max_request_chars": 122,
+      "estimated_call_reduction": "86.4%"
+    },
     "files": {
       "audio_chunks": "build/audio_chunks",
       "concatenated_audio": "build/narration.wav",

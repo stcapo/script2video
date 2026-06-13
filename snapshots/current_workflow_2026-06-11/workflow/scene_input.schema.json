@@ -34,6 +34,39 @@
           ],
           "default": "vcut"
         },
+        "tts_chunking": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "max_request_length"
+              ],
+              "default": "max_request_length"
+            },
+            "max_chars": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 299,
+              "default": 299
+            },
+            "scope": {
+              "type": "string",
+              "enum": [
+                "scene"
+              ],
+              "default": "scene"
+            },
+            "timing": {
+              "type": "string",
+              "enum": [
+                "weighted_estimate"
+              ],
+              "default": "weighted_estimate"
+            }
+          }
+        },
         "vcut": {
           "type": "object",
           "additionalProperties": false,

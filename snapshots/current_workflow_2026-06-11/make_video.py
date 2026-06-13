@@ -32,6 +32,10 @@ VCUT_TTS_FORMAT = "mp3"
 VCUT_TTS_SPEED = "0"
 VCUT_TTS_MAX_ATTEMPTS = 3
 VCUT_TTS_TIMEOUT_SECONDS = 120
+TTS_REQUEST_MAX_CHARS = 299
+TTS_CHUNKING_MODE = "max_request_length"
+TTS_CHUNKING_SCOPE = "scene"
+TTS_CHUNKING_TIMING = "weighted_estimate"
 SUBTITLE_LEAD_SECONDS = 0.04
 SUBTITLE_HOLD_SECONDS = 0.18
 SUBTITLE_MIN_DURATION_SECONDS = 0.35
@@ -94,6 +98,15 @@ class SubtitleEntry:
     text: str
     start: float
     end: float
+
+
+@dataclass(frozen=True)
+class TTSGroup:
+    subtitle_lines: tuple[str, ...]
+
+    @property
+    def text(self) -> str:
+        return "".join(self.subtitle_lines)
 
 
 SCENES = [
@@ -307,7 +320,7 @@ def env_value(key: str, default: str | None = None) -> str | None:
 
 
 def load_input_json(path: Path) -> None:
-    global FOOTER_TEXT, OUTPUT_VIDEO, RATE, SCENES, TTS_BACKEND, VCUT_TTS_FORMAT, VCUT_TTS_MODE, VCUT_TTS_SPEED, VOICE
+    global FOOTER_TEXT, OUTPUT_VIDEO, RATE, SCENES, TTS_BACKEND, TTS_CHUNKING_MODE, TTS_CHUNKING_SCOPE, TTS_CHUNKING_TIMING, TTS_REQUEST_MAX_CHARS, VCUT_TTS_FORMAT, VCUT_TTS_MODE, VCUT_TTS_SPEED, VOICE
 
     input_path = resolve_project_path(path)
     try:
@@ -339,6 +352,13 @@ def load_input_json(path: Path) -> None:
         VCUT_TTS_MODE = str(vcut_settings.get("mode") or VCUT_TTS_MODE)
         VCUT_TTS_FORMAT = str(vcut_settings.get("format") or VCUT_TTS_FORMAT)
         VCUT_TTS_SPEED = str(vcut_settings.get("speed") or VCUT_TTS_SPEED)
+    if isinstance(video_settings.get("tts_chunking"), dict):
+        chunking_settings = video_settings["tts_chunking"]
+        TTS_CHUNKING_MODE = str(chunking_settings.get("mode") or TTS_CHUNKING_MODE)
+        TTS_CHUNKING_SCOPE = str(chunking_settings.get("scope") or TTS_CHUNKING_SCOPE)
+        TTS_CHUNKING_TIMING = str(chunking_settings.get("timing") or TTS_CHUNKING_TIMING)
+        if chunking_settings.get("max_chars") is not None:
+            TTS_REQUEST_MAX_CHARS = int(chunking_settings["max_chars"])
     FOOTER_TEXT = str(video_settings.get("footer") or FOOTER_TEXT)
     if video_settings.get("output"):
         OUTPUT_VIDEO = resolve_project_path(Path(str(video_settings["output"])))
@@ -732,8 +752,8 @@ def synthesize_speech_with_vcut(text: str, output_path: Path) -> None:
             f"Unsupported vcut TTS mode '{VCUT_TTS_MODE}'. "
             "This workflow currently implements vcut mbaiscvip."
         )
-    if len(text) > 200:
-        raise SystemExit(f"vcut mbaiscvip text segment exceeds 200 chars: {len(text)}")
+    if len(text) > TTS_REQUEST_MAX_CHARS:
+        raise SystemExit(f"vcut mbaiscvip text segment exceeds {TTS_REQUEST_MAX_CHARS} chars: {len(text)}")
 
     audio_url = request_vcut_mbaiscvip_audio(text)
     download_audio(audio_url, output_path)
@@ -815,27 +835,125 @@ def concat_audio_chunks(chunk_paths: list[Path]) -> None:
         raise SystemExit(result.stderr.strip() or "Unable to concatenate narration chunks")
 
 
+def validate_tts_chunking_config() -> None:
+    if TTS_CHUNKING_MODE != "max_request_length":
+        raise SystemExit(f"Unsupported tts_chunking.mode '{TTS_CHUNKING_MODE}'.")
+    if TTS_CHUNKING_SCOPE != "scene":
+        raise SystemExit(f"Unsupported tts_chunking.scope '{TTS_CHUNKING_SCOPE}'.")
+    if TTS_CHUNKING_TIMING != "weighted_estimate":
+        raise SystemExit(f"Unsupported tts_chunking.timing '{TTS_CHUNKING_TIMING}'.")
+    if TTS_REQUEST_MAX_CHARS < 1:
+        raise SystemExit("tts_chunking.max_chars must be a positive integer.")
+
+
+def split_tts_groups(subtitle_lines: list[str], max_chars: int | None = None) -> list[TTSGroup]:
+    max_chars = max_chars or TTS_REQUEST_MAX_CHARS
+    groups: list[TTSGroup] = []
+    current: list[str] = []
+    current_len = 0
+
+    for line in subtitle_lines:
+        line_len = len(line)
+        if line_len > max_chars:
+            raise SystemExit(f"Subtitle line exceeds TTS request max length ({max_chars}): {line}")
+
+        if current and current_len + line_len > max_chars:
+            groups.append(TTSGroup(tuple(current)))
+            current = []
+            current_len = 0
+
+        current.append(line)
+        current_len += line_len
+
+    if current:
+        groups.append(TTSGroup(tuple(current)))
+
+    return groups
+
+
+def subtitle_timing_weight(text: str) -> float:
+    light_punctuation = "，、："
+    hard_punctuation = "。？！；"
+    weight = 0.0
+
+    for char in text:
+        if char.isspace():
+            continue
+        weight += 1.0
+        if char in light_punctuation:
+            weight += 0.8
+        elif char in hard_punctuation:
+            weight += 1.8
+        elif char == "…":
+            weight += 0.8
+
+    return max(weight, 1.0)
+
+
+def allocate_weighted_durations(weights: list[float], total_duration: float) -> list[float]:
+    if not weights:
+        return []
+    if len(weights) == 1:
+        return [total_duration]
+
+    total_weight = sum(weights) or float(len(weights))
+    minimum_total = SUBTITLE_MIN_DURATION_SECONDS * len(weights)
+
+    if total_duration <= minimum_total:
+        return [total_duration * weight / total_weight for weight in weights]
+
+    remainder = total_duration - minimum_total
+    return [
+        SUBTITLE_MIN_DURATION_SECONDS + remainder * weight / total_weight
+        for weight in weights
+    ]
+
+
+def allocate_subtitle_times(lines: tuple[str, ...], start: float, end: float) -> list[SubtitleEntry]:
+    duration = max(0.0, end - start)
+    weights = [subtitle_timing_weight(line) for line in lines]
+    durations = allocate_weighted_durations(weights, duration)
+
+    entries: list[SubtitleEntry] = []
+    cursor = start
+    for index, (line, line_duration) in enumerate(zip(lines, durations)):
+        entry_end = end if index == len(lines) - 1 else cursor + line_duration
+        entries.append(SubtitleEntry(text=line, start=cursor, end=entry_end))
+        cursor = entry_end
+    return entries
+
+
 async def generate_narration_from_subtitles() -> tuple[list[list[SubtitleEntry]], float]:
+    validate_tts_chunking_config()
+
     subtitles_by_scene: list[list[SubtitleEntry]] = [[] for _ in SCENES]
     chunk_paths: list[Path] = []
     cursor = 0.0
     chunk_index = 0
+    subtitle_line_count = 0
+    tts_request_lengths: list[int] = []
 
     for scene_index, scene in enumerate(SCENES):
         print(f"Generating narration chunks for scene {scene_index + 1}/{len(SCENES)}...")
-        for subtitle_text in split_subtitles(scene.narration):
+        subtitle_lines = split_subtitles(scene.narration)
+        tts_groups = split_tts_groups(subtitle_lines)
+        subtitle_line_count += len(subtitle_lines)
+
+        for tts_group in tts_groups:
             chunk_index += 1
             raw_extension = VCUT_TTS_FORMAT if TTS_BACKEND == "vcut" else "mp3"
             raw_path = AUDIO_CHUNK_DIR / f"raw_{chunk_index:03d}.{raw_extension}"
             wav_path = AUDIO_CHUNK_DIR / f"{chunk_index:03d}.wav"
+            request_text = tts_group.text
+            tts_request_lengths.append(len(request_text))
 
-            await synthesize_speech(subtitle_text, raw_path)
+            await synthesize_speech(request_text, raw_path)
             trim_chunk_leading_silence(raw_path, wav_path)
             duration = get_duration(wav_path)
 
             start = cursor
             end = cursor + duration
-            subtitles_by_scene[scene_index].append(SubtitleEntry(text=subtitle_text, start=start, end=end))
+            subtitles_by_scene[scene_index].extend(allocate_subtitle_times(tts_group.subtitle_lines, start, end))
             chunk_paths.append(wav_path)
             cursor = end
 
@@ -844,6 +962,16 @@ async def generate_narration_from_subtitles() -> tuple[list[list[SubtitleEntry]]
     if subtitles_by_scene and subtitles_by_scene[-1]:
         last = subtitles_by_scene[-1][-1]
         subtitles_by_scene[-1][-1] = SubtitleEntry(text=last.text, start=last.start, end=audio_duration)
+
+    if tts_request_lengths:
+        average_request_length = sum(tts_request_lengths) / len(tts_request_lengths)
+        savings = 1 - len(tts_request_lengths) / max(subtitle_line_count, 1)
+        print(
+            "TTS chunking: "
+            f"{subtitle_line_count} subtitle lines -> {len(tts_request_lengths)} TTS calls; "
+            f"avg {average_request_length:.1f} chars, max {max(tts_request_lengths)} chars; "
+            f"estimated call reduction {savings:.1%}."
+        )
     return subtitles_by_scene, audio_duration
 
 
@@ -981,22 +1109,43 @@ def wrap_subtitle_display(text: str, max_chars: int = SUBTITLE_DISPLAY_MAX_CHARS
     if len(text) <= max_chars:
         return [text]
 
-    lines: list[str] = []
-    current = ""
     punctuation = "，。？！；：、"
-    for char in text:
-        current += char
-        if len(current) >= max_chars or (char in punctuation and len(current) >= 6):
-            lines.append(current.strip())
-            current = ""
-    if current.strip():
-        lines.append(current.strip())
+    midpoint = len(text) / 2
+    candidates: list[int] = []
 
-    if len(lines) <= 2:
-        return lines
+    for index, char in enumerate(text[:-1], start=1):
+        if char in punctuation:
+            candidates.append(index)
 
-    midpoint = math.ceil(len(lines) / 2)
-    return ["".join(lines[:midpoint]), "".join(lines[midpoint:])]
+    valid_punctuation_splits = [
+        index for index in candidates
+        if len(text[:index]) <= max_chars and len(text[index:]) <= max_chars
+    ]
+    if valid_punctuation_splits:
+        split_at = min(valid_punctuation_splits, key=lambda index: abs(index - midpoint))
+    else:
+        rough_split = math.ceil(midpoint)
+        candidates = [
+            index for index in range(max(1, rough_split - 3), min(len(text), rough_split + 4))
+            if len(text[:index]) <= max_chars and len(text[index:]) <= max_chars
+        ]
+        awkward_starts = set("，。？！；：、的了着过吗呢吧啊呀么手址候")
+
+        def split_score(index: int) -> float:
+            score = abs(index - midpoint)
+            if text[index:index + 1] in awkward_starts:
+                score += 4
+            return score
+
+        split_at = min(candidates or [rough_split], key=split_score)
+
+    first = text[:split_at].strip()
+    second = text[split_at:].strip()
+    while second and second[0] in punctuation:
+        first += second[0]
+        second = second[1:].strip()
+
+    return [line for line in (first, second) if line]
 
 
 def ass_format_text(text: str) -> str:
